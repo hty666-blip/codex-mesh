@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hubUrl": "http://100.64.0.10:7337",
+  "nodeId": "created-by-enroll",
+  "token": "created-by-enroll-do-not-commit",
+  "name": "ubantant",
+  "os": "linux",
+  "tags": ["linux", "server"],
+  "capabilities": ["codex-exec"],
+  "maxConcurrent": 1,
+  "codexCommand": "codex",
+  "passEnv": [],
+  "pollIntervalMs": 2000,
+  "heartbeatIntervalMs": 30000,
+  "workspaces": [
+    {
+      "id": "project/example",
+      "path": "/srv/projects/example",
+      "realPath": "/srv/projects/example",
+      "mode": "workspace-write"
+    }
+  ]
+}

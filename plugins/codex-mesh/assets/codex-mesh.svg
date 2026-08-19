@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Codex Mesh">
+  <rect width="128" height="128" rx="28" fill="#5B5BD6"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round">
+    <path d="M35 38 64 64l29-26M35 90l29-26 29 26"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="35" cy="38" r="12"/>
+    <circle cx="93" cy="38" r="12"/>
+    <circle cx="64" cy="64" r="12"/>
+    <circle cx="35" cy="90" r="12"/>
+    <circle cx="93" cy="90" r="12"/>
+  </g>
+</svg>

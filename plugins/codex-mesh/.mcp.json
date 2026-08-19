@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "codexMesh": {
+      "title": "Codex Mesh",
+      "description": "Delegate scoped Codex tasks to private remote computers and use shared project memory.",
+      "icons": [
+        {
+          "src": "./assets/codex-mesh.svg",
+          "mimeType": "image/svg+xml"
+        }
+      ],
+      "cwd": ".",
+      "command": "node",
+      "args": [
+        "./src/mcp/server.mjs",
+        "--stdio"
+      ]
+    }
+  }
+}

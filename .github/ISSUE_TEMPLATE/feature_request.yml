@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a focused, safe improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Describe the user goal rather than only the proposed API.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security impact
+      description: Explain whether this changes remote execution, workspace, network, approval, credential, or memory boundaries.
+    validations:
+      required: true

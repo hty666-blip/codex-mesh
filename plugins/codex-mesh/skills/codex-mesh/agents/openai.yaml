@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Mesh"
+  short_description: "在多台受控电脑间安全分派、跟踪和汇总 Codex 远端任务"
+  default_prompt: "使用 $codex-mesh 查看在线节点，并把只读任务安全分派到合适的电脑。"

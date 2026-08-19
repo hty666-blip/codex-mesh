@@ -1,0 +1,52 @@
+{
+  "name": "codex-mesh",
+  "version": "0.1.0",
+  "description": "A self-hosted Codex plugin for delegating scoped tasks across private computers.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "hty666-blip and contributors",
+  "homepage": "https://github.com/hty666-blip/codex-mesh#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hty666-blip/codex-mesh.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hty666-blip/codex-mesh/issues"
+  },
+  "keywords": [
+    "codex",
+    "mcp",
+    "remote-agents",
+    "self-hosted",
+    "tailscale"
+  ],
+  "files": [
+    ".codex-plugin/",
+    ".mcp.json",
+    "assets/",
+    "examples/",
+    "scripts/",
+    "skills/",
+    "src/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "codex-mesh-hub": "./src/hub/main.mjs",
+    "codex-mesh-agent": "./src/agent/main.mjs",
+    "mesh-hub": "./src/hub/main.mjs",
+    "mesh-agent": "./src/agent/main.mjs",
+    "meshctl": "./src/cli/main.mjs",
+    "mesh-mcp": "./src/mcp/server.mjs",
+    "codex-mesh-mcp": "./src/mcp/server.mjs"
+  },
+  "scripts": {
+    "test": "node --test --test-reporter=spec",
+    "test:ci": "node --test",
+    "hub": "node ./src/hub/main.mjs",
+    "agent": "node ./src/agent/main.mjs",
+    "ctl": "node ./src/cli/main.mjs",
+    "mcp": "node ./src/mcp/server.mjs --stdio"
+  }
+}

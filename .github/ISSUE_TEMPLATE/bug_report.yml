@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible Codex Mesh problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include tokens, private IP addresses, prompts containing secrets, or sensitive source code.
+  - type: input
+    id: version
+    attributes:
+      label: Codex Mesh version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Plugin / MCP
+        - Hub
+        - Agent
+        - CLI
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include sanitized steps, expected behavior, and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Windows 11 / Ubuntu 24.04, Node.js 22, Codex CLI version
+    validations:
+      required: true

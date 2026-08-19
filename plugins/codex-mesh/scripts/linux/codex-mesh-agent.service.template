@@ -1,0 +1,22 @@
+[Unit]
+Description=Codex Mesh remote agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Replace placeholders before copying this file to ~/.config/systemd/user/.
+ExecStart=/usr/bin/node "@@INSTALL_DIR@@/src/agent/index.mjs" run --config "@@CONFIG_PATH@@"
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# Add one ReadWritePaths line for each workspace-write directory.
+ReadWritePaths=-%h/.codex
+ReadWritePaths=@@CONFIG_DIR@@
+ReadWritePaths=@@WORKSPACE_PATH@@
+
+[Install]
+WantedBy=default.target

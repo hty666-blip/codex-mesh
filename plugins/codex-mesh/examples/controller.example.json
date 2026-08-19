@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "hubUrl": "http://100.64.0.10:7337",
+  "controllerToken": "use-the-hub-controller-token-do-not-commit"
+}

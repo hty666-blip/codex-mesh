@@ -1,0 +1,43 @@
+{
+  "name": "codex-mesh",
+  "version": "0.1.0",
+  "description": "Delegate Codex tasks to a private, self-hosted fleet of computers.",
+  "author": {
+    "name": "hty666-blip and contributors",
+    "url": "https://github.com/hty666-blip"
+  },
+  "homepage": "https://github.com/hty666-blip/codex-mesh",
+  "repository": "https://github.com/hty666-blip/codex-mesh",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "remote-agents",
+    "multi-computer",
+    "mcp",
+    "tailscale"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Codex Mesh",
+    "shortDescription": "Delegate Codex work across your private computers.",
+    "longDescription": "Codex Mesh connects one controller to any number of self-hosted worker computers. Route read-only or workspace-scoped Codex tasks, follow progress, cancel work, and share explicitly approved project memory without exposing Codex directly to the public internet.",
+    "developerName": "Codex Mesh Community",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/hty666-blip/codex-mesh",
+    "privacyPolicyURL": "https://github.com/hty666-blip/codex-mesh/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Show all Codex Mesh nodes and their current status",
+      "Run a read-only task on one of my remote computers",
+      "Search shared project memory before delegating work"
+    ],
+    "brandColor": "#5B5BD6",
+    "composerIcon": "./assets/codex-mesh.svg",
+    "logo": "./assets/codex-mesh.svg"
+  }
+}

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22, 24]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: plugins/codex-mesh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: plugins/codex-mesh/package-lock.json
+      - run: npm ci
+      - run: npm run test:ci
+      - name: Validate Linux installer syntax
+        if: runner.os == 'Linux'
+        run: bash -n scripts/install-agent.sh scripts/linux/node-launcher.template
+      - name: Validate Windows installer and task template
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path scripts/install-agent.ps1),
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+          [xml](Get-Content scripts/windows/codex-mesh-agent-task.xml.template -Raw) | Out-Null
+
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/codex-mesh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm pack --dry-run

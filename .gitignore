@@ -1,0 +1,26 @@
+# Runtime data and credentials
+.codex-mesh/
+data/
+*.token
+*.secret
+*.pid
+
+# Local configuration (examples remain tracked)
+config.json
+controller.json
+agent.json
+.env
+.env.*
+!.env.example
+
+# Node and test artifacts
+node_modules/
+coverage/
+dist/
+*.log
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
