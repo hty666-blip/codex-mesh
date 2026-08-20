@@ -15,14 +15,8 @@ import {
 test('Codex argv is locked down and an option-looking prompt is sent only over stdin', async () => {
   const prompt = '--yolo; Write-Output SHOULD_NOT_RUN && touch nope';
   assert.deepEqual(buildCodexArgs(prompt, 'read-only'), [
-    'exec',
-    '--json',
-    '--sandbox',
-    'read-only',
     '--ask-for-approval',
     'never',
-    '--ephemeral',
-    '--ignore-user-config',
     '--disable',
     'apps',
     '--disable',
@@ -37,6 +31,12 @@ test('Codex argv is locked down and an option-looking prompt is sent only over s
     'memories',
     '--disable',
     'skill_mcp_dependency_install',
+    'exec',
+    '--json',
+    '--sandbox',
+    'read-only',
+    '--ephemeral',
+    '--ignore-user-config',
     '-c',
     'sandbox_workspace_write.network_access=false',
     '-c',

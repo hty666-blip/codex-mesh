@@ -61,14 +61,8 @@ export function buildCodexArgs(prompt, mode) {
   }
   validateTaskMode(mode);
   return [
-    'exec',
-    '--json',
-    '--sandbox',
-    mode,
     '--ask-for-approval',
     'never',
-    '--ephemeral',
-    '--ignore-user-config',
     '--disable',
     'apps',
     '--disable',
@@ -83,6 +77,12 @@ export function buildCodexArgs(prompt, mode) {
     'memories',
     '--disable',
     'skill_mcp_dependency_install',
+    'exec',
+    '--json',
+    '--sandbox',
+    mode,
+    '--ephemeral',
+    '--ignore-user-config',
     '-c',
     'sandbox_workspace_write.network_access=false',
     '-c',
