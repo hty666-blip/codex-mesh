@@ -128,5 +128,5 @@ if ($backupPath) {
     Write-Host "Backup:     $backupPath"
 }
 Write-Host ''
-Write-Host 'Start Codex Desktop again and ask: 列出所有 Codex Mesh 节点。'
+Write-Host 'Start Codex Desktop again and ask it to list all Codex Mesh nodes.'
 Write-Host 'The Hub must be running, and ~/.codex-mesh/controller.json must contain its URL and controller token.'
