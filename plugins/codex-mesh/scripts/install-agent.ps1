@@ -50,6 +50,6 @@ Write-Host 'No service, scheduled task, firewall rule, or administrator-level ch
 Write-Host ''
 Write-Host 'Next steps:'
 Write-Host '  1. On the controller, run: meshctl pair --name worker-win11'
-Write-Host "  2. Back on this machine, enroll it: $agentLauncher enroll --hub http://TAILSCALE-IP:7337 --pairing-code CODE --name worker-win11 --workspace project/example=D:\Projects\example"
+Write-Host "  2. Back on this machine, enroll it: $agentLauncher enroll --hub http://CONTROLLER-PRIVATE-IP:7337 --pairing-code CODE --name worker-win11 --workspace project/example=D:\Projects\example"
 Write-Host "  3. Test in the foreground: $agentLauncher run"
 Write-Host '  4. If desired, customize scripts\windows\codex-mesh-agent-task.xml.template from the checkout and import it manually in Task Scheduler.'

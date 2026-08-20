@@ -37,6 +37,6 @@ echo 'No systemd unit, firewall rule, package, or root-level change was made.'
 echo
 echo 'Next steps:'
 echo '  1. On the controller, run: meshctl pair --name ubantant'
-echo "  2. Back on this machine, enroll it: $agent_launcher enroll --hub http://TAILSCALE-IP:7337 --pairing-code CODE --name ubantant --workspace project/example=/srv/projects/example"
+echo "  2. Back on this machine, enroll it: $agent_launcher enroll --hub http://CONTROLLER-PRIVATE-IP:7337 --pairing-code CODE --name ubantant --workspace project/example=/srv/projects/example"
 echo "  3. Test in the foreground: $agent_launcher run"
 echo "  4. Customize $source_root/scripts/linux/codex-mesh-agent.service.template and install it manually if desired."

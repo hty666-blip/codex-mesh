@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) | English
 
-Codex Mesh is an Apache-2.0, self-hosted Codex plugin for delegating scoped work from one controller to any number of computers you own. The computers can be on different physical networks: Tailscale supplies the private network, while each worker runs its own locally authenticated Codex CLI.
+Codex Mesh is an Apache-2.0, self-hosted Codex plugin for delegating scoped work from one controller to any number of computers you own. The computers can be on different physical networks: a private overlay such as Tailscale or ZeroTier supplies connectivity, while each worker runs its own locally authenticated Codex CLI.
 
 This is a personal-lab and development MVP. It is not a remote shell, a production orchestrator, or a secret-handling system.
 
@@ -10,7 +10,7 @@ This is a personal-lab and development MVP. It is not a remote shell, a producti
 
 ```mermaid
 flowchart LR
-    C["Controller · Windows 10<br/>Codex + plugin"] --> H["Mesh Hub<br/>bound to one Tailscale IP"]
+    C["Controller · Windows 10<br/>Codex Desktop + plugin"] --> H["Mesh Hub<br/>bound to one private overlay IP"]
     H <--> W1["Worker · Windows 11<br/>Agent → local Codex CLI"]
     H <--> W2["Worker · Ubuntu / ubantant<br/>Agent → local Codex CLI"]
     H <--> WN["Worker N<br/>Agent → local Codex CLI"]
@@ -58,12 +58,12 @@ No public server, domain, router port-forward, or Tailscale Funnel is required.
 Install these on the relevant machines:
 
 - Node.js 20 or newer on the controller and every worker.
-- Tailscale on all machines, signed into the same tailnet.
+- Tailscale or ZeroTier on all machines, joined to one private overlay network.
 - Git for cloning the repository.
 - An installed and authenticated Codex CLI on each worker, under the same low-privilege account that runs the Agent.
 - Ubuntu: `bubblewrap` for reliable native Codex sandboxing (`sudo apt install bubblewrap` on supported Ubuntu releases).
 
-See [the private-network guide](docs/tailscale-setup.md) before starting the Hub.
+See either the [Tailscale guide](docs/tailscale-setup.md) or the [ZeroTier guide](docs/zerotier-setup.md) before starting the Hub.
 
 ## Quick start: Windows 10 controller
 
@@ -73,25 +73,25 @@ Open PowerShell as the normal user that runs Codex. Do not use an administrator 
 git clone https://github.com/hty666-blip/codex-mesh.git
 Set-Location .\codex-mesh\plugins\codex-mesh
 
-$TailIp = (& tailscale ip -4 | Select-Object -First 1).Trim()
-if (-not $TailIp) { throw "No Tailscale IPv4 address was found" }
-$HubUrl = "http://${TailIp}:7337"
+$PrivateIp = "10.147.20.10" # Replace with the controller's Tailscale or ZeroTier IPv4
+$HubUrl = "http://${PrivateIp}:7337"
 $DataDir = Join-Path $env:LOCALAPPDATA "CodexMesh\data"
 
 node .\src\hub\main.mjs init --data-dir $DataDir --hub-url $HubUrl
-node .\src\hub\main.mjs serve --data-dir $DataDir --host $TailIp --port 7337
+node .\src\hub\main.mjs serve --data-dir $DataDir --host $PrivateIp --port 7337
 ```
 
 `init` creates the Hub state and `~/.codex-mesh/controller.json`. Both contain security-sensitive data; never commit or share them. Leave this PowerShell window open—the Hub stops when the process or Windows 10 machine stops.
 
-In a second controller terminal, install the plugin into Codex:
+Close every Codex Desktop window. In a second controller terminal, install the controller integration. This path does not install or invoke the Codex CLI:
 
 ```powershell
-codex plugin marketplace add hty666-blip/codex-mesh
-codex plugin add codex-mesh@hty666-blip
+& .\scripts\install-controller-desktop.ps1
 ```
 
-The plugin's MCP server reads the controller configuration created above. You can now ask Codex to list Mesh nodes, create a pairing, delegate a task to a selected node, follow or cancel it, and use explicitly stored project memory.
+The installer backs up an existing `~/.codex/config.toml`, copies the MCP runtime to `%LOCALAPPDATA%\CodexMesh\controller`, registers it, and copies the Mesh skill. Restart Codex Desktop afterward. The MCP server reads the controller configuration created above; you can then ask Codex to list Mesh nodes, create a pairing, delegate a task to a selected node, follow or cancel it, and use explicitly stored project memory. Only worker machines require the Codex CLI.
+
+If you prefer the standard marketplace workflow and already have the Codex CLI, you can instead run `codex plugin marketplace add hty666-blip/codex-mesh` followed by `codex plugin add codex-mesh@hty666-blip`.
 
 ## Add the Windows 11 worker
 
@@ -109,7 +109,7 @@ Set-Location .\codex-mesh\plugins\codex-mesh
 & .\scripts\install-agent.ps1
 
 $Agent = Join-Path $env:LOCALAPPDATA "CodexMesh\bin\mesh-agent.cmd"
-$HubUrl = "http://100.x.y.z:7337"  # Replace with the controller's Tailscale IPv4
+$HubUrl = "http://10.147.20.10:7337"  # Replace with the controller's private overlay IPv4
 
 & $Agent enroll `
   --hub $HubUrl `
@@ -145,7 +145,7 @@ cd codex-mesh/plugins/codex-mesh
 sh ./scripts/install-agent.sh
 
 AGENT="$HOME/.local/share/codex-mesh/bin/mesh-agent"
-HUB_URL="http://100.x.y.z:7337" # Replace with the controller's Tailscale IPv4
+HUB_URL="http://10.147.20.10:7337" # Replace with the controller's private overlay IPv4
 
 "$AGENT" enroll \
   --hub "$HUB_URL" \

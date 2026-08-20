@@ -4,6 +4,14 @@ These scripts copy the dependency-free Node.js agent and CLI into a user-owned
 directory. They deliberately do not install a service, elevate privileges,
 change firewall settings, install Node.js, or start a process.
 
+- Windows controller using Codex Desktop only: run
+  `./scripts/install-controller-desktop.ps1`. It registers the Mesh MCP server
+  in `~/.codex/config.toml`, copies the dependency-free MCP runtime to
+  `%LOCALAPPDATA%\CodexMesh\controller`, copies the Mesh skill to
+  `~/.codex/skills/codex-mesh`, backs up an existing config before changing it,
+  and is safe to rerun. It does not install or invoke the Codex CLI. Close all
+  Codex Desktop windows before installation and restart the app afterward.
+
 - Windows: run `./scripts/install-agent.ps1`, enroll in a foreground terminal,
   then customize `windows/codex-mesh-agent-task.xml.template` if a least-
   privilege Scheduled Task is wanted.

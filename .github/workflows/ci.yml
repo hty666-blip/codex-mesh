@@ -35,15 +35,22 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $tokens = $null
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path scripts/install-agent.ps1),
-            [ref]$tokens,
-            [ref]$parseErrors
-          ) | Out-Null
-          if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+          foreach ($script in @(
+            'scripts/install-agent.ps1',
+            'scripts/install-controller-desktop.ps1',
+            'test/controller-installer.test.ps1'
+          )) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $script),
+              [ref]$tokens,
+              [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+          }
           [xml](Get-Content scripts/windows/codex-mesh-agent-task.xml.template -Raw) | Out-Null
+          & ./test/controller-installer.test.ps1
 
   package:
     runs-on: ubuntu-latest

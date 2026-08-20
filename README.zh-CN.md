@@ -2,7 +2,7 @@
 
 简体中文 | [English](README.md)
 
-Codex Mesh 是一个采用 Apache-2.0 协议的开源、自托管 Codex 插件。它让一台主控电脑把有明确工作区范围的任务交给任意多台你自己管理的电脑执行；这些电脑不需要在同一局域网，通过 Tailscale 私有网络即可互通。
+Codex Mesh 是一个采用 Apache-2.0 协议的开源、自托管 Codex 插件。它让一台主控电脑把有明确工作区范围的任务交给任意多台你自己管理的电脑执行；这些电脑不需要在同一局域网，通过 Tailscale、ZeroTier 等私有组网即可互通。
 
 你的三台机器可以这样分工：
 
@@ -16,7 +16,7 @@ Codex Mesh 是一个采用 Apache-2.0 协议的开源、自托管 Codex 插件�
 
 ## 先回答两个关键问题
 
-**私有网络怎么弄？** 三台机器都安装 Tailscale，并登录到同一个 tailnet。Tailscale 会给每台机器分配一个私有 IP；不需要三台机器处于同一 Wi-Fi，不需要公网 IP、域名、路由器端口转发，也不要开启 Tailscale Funnel。
+**私有网络怎么弄？** 三台机器安装 Tailscale 或 ZeroTier，并加入同一个私有网络。每台机器会获得一个私有 IP；不需要处于同一 Wi-Fi，也不需要公网 IP、域名或路由器端口转发。Hub 只绑定主控的明确私有 IP。
 
 **要钱吗？** Codex Mesh 自身免费开源。本文编写时，Tailscale 提供适合个人使用的免费 Personal 方案，通常足够这类三机或多机配置；价格与方案条款以后可能变化，请以 [Tailscale 当前价格页](https://tailscale.com/pricing) 为准。每台 worker 使用 Codex 产生的订阅或 API 成本另计。
 
@@ -24,14 +24,14 @@ Codex Mesh 是一个采用 Apache-2.0 协议的开源、自托管 Codex 插件�
 
 ```mermaid
 flowchart LR
-    C["主控 · Windows 10<br/>Codex + 插件"] --> H["Mesh Hub<br/>只绑定一个 Tailscale 私有 IP"]
+    C["主控 · Windows 10<br/>Codex 桌面端 + 插件"] --> H["Mesh Hub<br/>只绑定一个组网私有 IP"]
     H <--> W1["worker · Windows 11<br/>Agent → 本机 Codex CLI"]
     H <--> W2["worker · Ubuntu / ubantant<br/>Agent → 本机 Codex CLI"]
     H <--> WN["第 N 台 worker<br/>Agent → 本机 Codex CLI"]
     H --- D[("本地 JSON 状态<br/>任务 + 显式共享记忆")]
 ```
 
-Agent 主动轮询 Hub，所以 worker 不需要开放入站服务。Hub 只监听 Windows 10 的明确 Tailscale IP；程序会拒绝公网地址和 `0.0.0.0`、`::` 等通配监听。Codex 本身不会作为网络服务暴露出去，插件也不提供任意远程 Shell 工具。
+Agent 主动轮询 Hub，所以 worker 不需要开放入站服务。Hub 只监听 Windows 10 的明确 Tailscale/ZeroTier 私有 IP；程序会拒绝公网地址和 `0.0.0.0`、`::` 等通配监听。Codex 本身不会作为网络服务暴露出去，插件也不提供任意远程 Shell 工具。
 
 每个任务都必须指定逻辑 `workspace_id`，只读任务也不例外。同一个逻辑 ID 可以映射到不同机器上的不同路径：
 
@@ -95,8 +95,8 @@ Agent 主动轮询 Hub，所以 worker 不需要开放入站服务。Hub 只监�
 
 - 安装 Node.js 20 或更高版本；
 - 安装 Git；
-- 安装 Tailscale，并登录同一个 tailnet；
-- 确认 Tailscale 中能看到另外两台设备。
+- 安装 Tailscale 或 ZeroTier，并加入同一个私有网络；
+- 确认组网控制台中三台设备都已授权并在线。
 
 两台 worker 还需要：
 
@@ -111,7 +111,7 @@ sudo apt update
 sudo apt install bubblewrap
 ```
 
-Tailscale 的完整检查步骤见 [docs/tailscale-setup.md](docs/tailscale-setup.md)。
+完整检查步骤见 [Tailscale 指南](docs/tailscale-setup.md)或 [ZeroTier 指南](docs/zerotier-setup.md)。
 
 ## 第 1 步：在 Windows 10 初始化主控 Hub
 
@@ -121,13 +121,12 @@ Tailscale 的完整检查步骤见 [docs/tailscale-setup.md](docs/tailscale-setu
 git clone https://github.com/hty666-blip/codex-mesh.git
 Set-Location .\codex-mesh\plugins\codex-mesh
 
-$TailIp = (& tailscale ip -4 | Select-Object -First 1).Trim()
-if (-not $TailIp) { throw "没有找到 Tailscale IPv4 地址" }
-$HubUrl = "http://${TailIp}:7337"
+$PrivateIp = "10.147.20.10" # 换成 Win10 的 Tailscale 或 ZeroTier IPv4
+$HubUrl = "http://${PrivateIp}:7337"
 $DataDir = Join-Path $env:LOCALAPPDATA "CodexMesh\data"
 
 node .\src\hub\main.mjs init --data-dir $DataDir --hub-url $HubUrl
-node .\src\hub\main.mjs serve --data-dir $DataDir --host $TailIp --port 7337
+node .\src\hub\main.mjs serve --data-dir $DataDir --host $PrivateIp --port 7337
 ```
 
 `init` 只需要在第一次运行。它会创建：
@@ -137,16 +136,17 @@ node .\src\hub\main.mjs serve --data-dir $DataDir --host $TailIp --port 7337
 
 初始化输出里也会出现主控令牌，不要截图或分享。第二条 `serve` 命令会持续占用当前窗口；保持窗口和 Windows 10 开机，否则 Hub 会离线。
 
-## 第 2 步：在 Windows 10 安装 Codex 插件
+## 第 2 步：在 Windows 10 桌面端安装主控集成
 
-另开一个普通 PowerShell 窗口：
+先关闭所有 Codex 桌面端窗口，再开一个普通 PowerShell 窗口运行以下脚本。它不会安装或调用 Codex CLI：
 
 ```powershell
-codex plugin marketplace add hty666-blip/codex-mesh
-codex plugin add codex-mesh@hty666-blip
+& .\scripts\install-controller-desktop.ps1
 ```
 
-插件里的 MCP server 会读取上一步生成的 `~/.codex-mesh/controller.json`。安装后，你可以在主控 Codex 里用自然语言操作，例如：
+脚本会先备份已有的 `~/.codex/config.toml`，把 MCP 运行文件复制到 `%LOCALAPPDATA%\CodexMesh\controller`，登记该 MCP server，并把 Mesh Skill 复制到 `~/.codex/skills/codex-mesh`。脚本可以安全地重复运行，不会重复添加配置。完成后重新启动 Codex 桌面端。
+
+MCP server 会读取上一步生成的 `~/.codex-mesh/controller.json`。只有 worker 需要 Codex CLI；Win10 主控日常操作可以全部在桌面端完成。安装后可以用自然语言操作，例如：
 
 - “列出所有 Codex Mesh 节点和在线状态。”
 - “为一台名为 worker-win11 的新机器生成配对码。”
@@ -155,6 +155,8 @@ codex plugin add codex-mesh@hty666-blip
 - “把已确认的 Node.js 版本决定写入 project/example 的共享记忆。”
 
 对话中的具体工具调用仍然受 Hub 的工作区、模式和节点权限检查。
+
+如果以后愿意使用标准 marketplace 安装方式，并且 Win10 已有 Codex CLI，也可以改用 `codex plugin marketplace add hty666-blip/codex-mesh` 和 `codex plugin add codex-mesh@hty666-blip`。
 
 ## 第 3 步：加入 Windows 11 worker
 
@@ -174,7 +176,7 @@ Set-Location .\codex-mesh\plugins\codex-mesh
 & .\scripts\install-agent.ps1
 
 $Agent = Join-Path $env:LOCALAPPDATA "CodexMesh\bin\mesh-agent.cmd"
-$HubUrl = "http://100.x.y.z:7337"  # 换成 Windows 10 的 Tailscale IPv4
+$HubUrl = "http://10.147.20.10:7337"  # 换成 Windows 10 的组网私有 IPv4
 
 & $Agent enroll `
   --hub $HubUrl `
@@ -220,7 +222,7 @@ cd codex-mesh/plugins/codex-mesh
 sh ./scripts/install-agent.sh
 
 AGENT="$HOME/.local/share/codex-mesh/bin/mesh-agent"
-HUB_URL="http://100.x.y.z:7337" # 换成 Windows 10 的 Tailscale IPv4
+HUB_URL="http://10.147.20.10:7337" # 换成 Windows 10 的组网私有 IPv4
 
 "$AGENT" enroll \
   --hub "$HUB_URL" \

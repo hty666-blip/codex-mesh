@@ -1,6 +1,6 @@
 {
   "name": "codex-mesh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A self-hosted Codex plugin for delegating scoped tasks across private computers.",
   "type": "module",
   "license": "Apache-2.0",
