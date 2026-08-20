@@ -7,6 +7,23 @@ import { normalizeHubUrl } from './api-client.mjs';
 
 const WORKSPACE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/;
 const ALLOWED_MODES = new Set(['read-only', 'workspace-write']);
+const WINDOWS_SANDBOX_MODES = new Set(['elevated', 'unelevated']);
+
+export function normalizeCodexProxy(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new TypeError('codexProxy must be a non-empty HTTP or HTTPS URL');
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError('codexProxy must be a valid HTTP or HTTPS URL');
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+    throw new TypeError('codexProxy must be a valid HTTP or HTTPS URL');
+  }
+  return parsed.toString().replace(/\/$/, '');
+}
 
 export function defaultAgentConfigPath(env = process.env, platform = process.platform) {
   if (env.CODEX_MESH_AGENT_CONFIG) return path.resolve(env.CODEX_MESH_AGENT_CONFIG);
@@ -88,6 +105,10 @@ export function validateAgentConfig(config) {
   if (config.codexCommand !== undefined && (typeof config.codexCommand !== 'string' || !config.codexCommand)) {
     throw new TypeError('codexCommand must be a non-empty string');
   }
+  if (config.windowsSandbox !== undefined && !WINDOWS_SANDBOX_MODES.has(config.windowsSandbox)) {
+    throw new TypeError('windowsSandbox must be elevated or unelevated');
+  }
+  if (config.codexProxy !== undefined) config.codexProxy = normalizeCodexProxy(config.codexProxy);
   if (config.tags !== undefined && (!Array.isArray(config.tags) || config.tags.some((tag) => typeof tag !== 'string'))) {
     throw new TypeError('tags must be an array of strings');
   }
@@ -140,4 +161,4 @@ export async function loadAgentConfig(filePath) {
   return validateAgentConfig(config);
 }
 
-export { ALLOWED_MODES };
+export { ALLOWED_MODES, WINDOWS_SANDBOX_MODES };

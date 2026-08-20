@@ -4,7 +4,7 @@ import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import readline from 'node:readline';
 import { setTimeout as delay } from 'node:timers/promises';
-import { ALLOWED_MODES } from './config.mjs';
+import { ALLOWED_MODES, WINDOWS_SANDBOX_MODES } from './config.mjs';
 
 const MAX_EVENT_LINE_BYTES = 64 * 1024;
 const MAX_RESULT_BYTES = 512 * 1024;
@@ -55,11 +55,14 @@ export function validateTaskMode(mode, workspaceMode = 'workspace-write') {
   return mode;
 }
 
-export function buildCodexArgs(prompt, mode) {
+export function buildCodexArgs(prompt, mode, { windowsSandbox } = {}) {
   if (typeof prompt !== 'string' || prompt.trim() === '') {
     throw new TaskValidationError('Task prompt must be a non-empty string', 'prompt_required');
   }
   validateTaskMode(mode);
+  if (windowsSandbox !== undefined && !WINDOWS_SANDBOX_MODES.has(windowsSandbox)) {
+    throw new TaskValidationError('Windows sandbox must be elevated or unelevated', 'invalid_config');
+  }
   return [
     '--ask-for-approval',
     'never',
@@ -83,6 +86,7 @@ export function buildCodexArgs(prompt, mode) {
     mode,
     '--ephemeral',
     '--ignore-user-config',
+    ...(windowsSandbox === undefined ? [] : ['-c', `windows.sandbox="${windowsSandbox}"`]),
     '-c',
     'sandbox_workspace_write.network_access=false',
     '-c',
@@ -138,6 +142,16 @@ export function sanitizedChildEnvironment(source = process.env, passEnv = []) {
       return DEFAULT_CHILD_ENV_PREFIXES.some((prefix) => normalized.startsWith(prefix));
     }),
   );
+}
+
+export function codexChildEnvironment(source = process.env, passEnv = [], codexProxy) {
+  const environment = sanitizedChildEnvironment(source, passEnv);
+  if (codexProxy !== undefined) {
+    environment.HTTP_PROXY = codexProxy;
+    environment.HTTPS_PROXY = codexProxy;
+    environment.ALL_PROXY = codexProxy;
+  }
+  return environment;
 }
 
 function stringValue(value) {
@@ -297,7 +311,9 @@ export class AgentRunner {
 
       const workspace = await resolveWorkspace(this.config, task.workspaceId);
       const mode = validateTaskMode(task.mode, workspace.mode);
-      const args = buildCodexArgs(task.prompt, mode);
+      const args = buildCodexArgs(task.prompt, mode, {
+        windowsSandbox: this.config.windowsSandbox,
+      });
       const outcome = await this.spawnAndMonitor({ task, workspace, args, signal });
 
       if (outcome.cancelled) {
@@ -367,7 +383,11 @@ export class AgentRunner {
   async spawnAndMonitor({ task, workspace, args, signal }) {
     const child = this.spawnImpl(this.config.codexCommand ?? 'codex', args, {
       cwd: workspace.realPath,
-      env: sanitizedChildEnvironment(process.env, this.config.passEnv ?? []),
+      env: codexChildEnvironment(
+        process.env,
+        this.config.passEnv ?? [],
+        this.config.codexProxy,
+      ),
       shell: false,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],

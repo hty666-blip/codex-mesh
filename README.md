@@ -124,6 +124,18 @@ $HubUrl = "http://10.147.20.10:7337"  # Replace with the controller's private ov
 
 Keep the foreground Agent running for the initial test. Enrollment creates `%APPDATA%\codex-mesh\agent.json`, which contains that node's bearer token. Do not copy it to another machine. The installer makes no firewall, service, Scheduled Task, or administrator-level change; an optional least-privilege Task Scheduler template is in `scripts/windows/`.
 
+If the preferred Windows sandbox cannot write to an enrolled writable workspace, configure OpenAI's weaker fallback sandbox. A local HTTP proxy such as Clash can be scoped to the Codex child without proxying the Agent's private-overlay Hub traffic:
+
+```powershell
+& $Agent configure `
+  --windows-sandbox unelevated `
+  --codex-proxy http://127.0.0.1:7897
+
+& $Agent run
+```
+
+Prefer `elevated` and use `unelevated` only as a fallback. Replace `7897` with the proxy's actual listening port. This local change does not require re-enrollment. Remove overrides with `--clear-codex-proxy` or `--clear-windows-sandbox`.
+
 Use `--workspace-mode read-only` if that worker should never accept write tasks. Repeat `--workspace "ID=PATH"` to register more workspaces.
 
 ## Add the Ubuntu worker (`ubantant`)
@@ -243,6 +255,8 @@ node .\src\hub\main.mjs serve --data-dir $DataDir --host $TailIp --port 7337
 - **Node is offline:** keep `mesh-agent run` active, confirm that the local Codex CLI is authenticated under the Agent account, and verify every configured workspace still exists.
 - **Config already exists:** do not use `--force` until you know which token/config you are replacing. A normal restart uses `run`, not `enroll`.
 - **Agent says the config is already in use:** another Agent is running with that config. Stop it; do not run duplicate workers with the same node token.
+- **Windows Codex has network/TLS reconnect errors:** verify `chatgpt.com:443` connectivity. If Codex needs a local HTTP proxy, run `mesh-agent configure --codex-proxy http://127.0.0.1:PORT`; only the Codex child receives it.
+- **A writable Windows workspace behaves as read-only:** confirm it was enrolled as `workspace-write`, then use `mesh-agent configure --windows-sandbox unelevated` only if the preferred elevated Windows sandbox is unavailable.
 - **Codex can read too much:** stop the Agent and reduce the OS account's filesystem permissions or move it into a dedicated VM/container. A narrower workspace alone does not fix read confidentiality.
 - **Controller sleeps or shuts down:** the Hub becomes unavailable. For always-on use, host the Hub on an always-on private machine and migrate deliberately; do not expose it publicly.
 

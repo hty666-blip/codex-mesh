@@ -33,6 +33,28 @@ by default. If Codex truly needs one, enroll with a repeatable `--pass-env NAME`
 option or add the exact name to the local config's `passEnv` array.
 `CODEX_MESH_*` variables can never be passed through.
 
+On Windows, the native Codex sandbox can be selected without re-enrolling the
+node. Prefer `elevated`; use the weaker `unelevated` fallback only when the
+elevated sandbox is unavailable:
+
+```powershell
+& $Agent configure --windows-sandbox unelevated
+```
+
+When Codex itself needs a local HTTP(S) proxy, configure it only for the Codex
+child process. The Agent's Hub traffic remains direct, so private-network Hub
+addresses do not enter the proxy:
+
+```powershell
+& $Agent configure `
+  --windows-sandbox unelevated `
+  --codex-proxy http://127.0.0.1:7897
+```
+
+Use `--clear-codex-proxy` or `--clear-windows-sandbox` to remove an override.
+Proxy URLs are stored in the protected local Agent config and are never sent to
+the Hub. Avoid embedding proxy credentials in the URL when possible.
+
 Only run one agent process for a given config; the runner enforces this with a
 PID lock beside the config file. A Codex workspace is a working-directory and
 write boundary, not a strong read-confidentiality boundary. Run workers under a

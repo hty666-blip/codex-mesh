@@ -8,9 +8,12 @@ import { HubClient } from './api-client.mjs';
 import {
   defaultAgentConfigPath,
   loadAgentConfig,
+  normalizeCodexProxy,
   parseTags,
   prepareWorkspaces,
   saveAgentConfig,
+  validateAgentConfig,
+  WINDOWS_SANDBOX_MODES,
 } from './config.mjs';
 import { AgentRunner } from './runner.mjs';
 import { acquireAgentLock } from './process-lock.mjs';
@@ -20,6 +23,7 @@ const HELP = `mesh-agent
 Usage:
   mesh-agent enroll --hub URL --pairing-code CODE --name NAME \\
     --workspace ID=PATH [--workspace ID=PATH ...] [--tags TAGS]
+  mesh-agent configure [--windows-sandbox MODE] [--codex-proxy URL]
   mesh-agent run [--config PATH]
 
 Enroll options:
@@ -30,9 +34,18 @@ Enroll options:
   --workspace ID=PATH       Repeatable local workspace mapping (required)
   --workspace-mode MODE     read-only or workspace-write (default)
   --codex PATH              Local Codex executable (default: codex)
+  --windows-sandbox MODE    Windows sandbox: elevated or unelevated
+  --codex-proxy URL         HTTP(S) proxy used only by the Codex child
   --pass-env NAME           Explicitly pass one environment variable to Codex
   --config PATH             Agent config destination
   --force                   Replace an existing config
+
+Configure options:
+  --windows-sandbox MODE    Set the Windows sandbox implementation
+  --codex-proxy URL         Set the Codex-only HTTP(S) proxy
+  --clear-windows-sandbox   Remove the Windows sandbox override
+  --clear-codex-proxy       Remove the Codex-only proxy
+  --config PATH             Existing Agent config
 
 The node token is written only to the local config. Local workspace paths are
 never sent to the hub.
@@ -41,7 +54,7 @@ never sent to the hub.
 export function parseAgentArguments(argv) {
   const positionals = [];
   const options = new Map();
-  const booleanOptions = new Set(['help', 'force']);
+  const booleanOptions = new Set(['help', 'force', 'clear-windows-sandbox', 'clear-codex-proxy']);
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--') {
@@ -104,10 +117,15 @@ async function enroll(parsed, env) {
   const name = parsed.one('name', os.hostname());
   const workspaceSpecs = parsed.many('workspace');
   const workspaceMode = parsed.one('workspace-mode', 'workspace-write');
+  const windowsSandbox = parsed.one('windows-sandbox');
+  const codexProxy = parsed.one('codex-proxy');
   const configPath = path.resolve(parsed.one('config', defaultAgentConfigPath(env)));
 
   if (!hubUrl) throw new TypeError('--hub is required');
   if (!pairingCode) throw new TypeError('--pairing-code is required');
+  if (windowsSandbox !== undefined && !WINDOWS_SANDBOX_MODES.has(windowsSandbox)) {
+    throw new TypeError('--windows-sandbox must be elevated or unelevated');
+  }
   if (await pathExists(configPath) && !parsed.has('force')) {
     throw new Error(`Config already exists at ${configPath}; use --force to replace it`);
   }
@@ -147,6 +165,8 @@ async function enroll(parsed, env) {
     capabilities: ['codex-exec'],
     maxConcurrent: 1,
     codexCommand: parsed.one('codex', 'codex'),
+    ...(windowsSandbox === undefined ? {} : { windowsSandbox }),
+    ...(codexProxy === undefined ? {} : { codexProxy: normalizeCodexProxy(codexProxy) }),
     passEnv,
     pollIntervalMs: 2_000,
     heartbeatIntervalMs: 30_000,
@@ -154,6 +174,38 @@ async function enroll(parsed, env) {
   };
   await saveAgentConfig(configPath, config);
   process.stdout.write(`${JSON.stringify({ enrolled: true, nodeId, configPath }, null, 2)}\n`);
+}
+
+async function configureAgent(parsed, env) {
+  const configPath = path.resolve(parsed.one('config', defaultAgentConfigPath(env)));
+  const config = await loadAgentConfig(configPath);
+  const hasWindowsSandbox = parsed.has('windows-sandbox');
+  const hasCodexProxy = parsed.has('codex-proxy');
+  const clearWindowsSandbox = parsed.has('clear-windows-sandbox');
+  const clearCodexProxy = parsed.has('clear-codex-proxy');
+
+  if (hasWindowsSandbox && clearWindowsSandbox) {
+    throw new TypeError('Use either --windows-sandbox or --clear-windows-sandbox');
+  }
+  if (hasCodexProxy && clearCodexProxy) {
+    throw new TypeError('Use either --codex-proxy or --clear-codex-proxy');
+  }
+  if (!hasWindowsSandbox && !hasCodexProxy && !clearWindowsSandbox && !clearCodexProxy) {
+    throw new TypeError('configure requires at least one setting to change');
+  }
+
+  if (hasWindowsSandbox) config.windowsSandbox = parsed.one('windows-sandbox');
+  if (clearWindowsSandbox) delete config.windowsSandbox;
+  if (hasCodexProxy) config.codexProxy = normalizeCodexProxy(parsed.one('codex-proxy'));
+  if (clearCodexProxy) delete config.codexProxy;
+  validateAgentConfig(config);
+  await saveAgentConfig(configPath, config);
+  process.stdout.write(`${JSON.stringify({
+    configured: true,
+    configPath,
+    windowsSandbox: config.windowsSandbox ?? null,
+    codexProxyConfigured: Boolean(config.codexProxy),
+  }, null, 2)}\n`);
 }
 
 async function runAgent(parsed, env) {
@@ -190,6 +242,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   }
   if (parsed.positionals.length) throw new TypeError(`Unexpected argument: ${parsed.positionals[0]}`);
   if (parsed.command === 'enroll') return enroll(parsed, env);
+  if (parsed.command === 'configure') return configureAgent(parsed, env);
   if (parsed.command === 'run') return runAgent(parsed, env);
   throw new TypeError(`Unknown command "${parsed.command}"`);
 }

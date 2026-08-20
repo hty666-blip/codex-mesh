@@ -6,6 +6,7 @@ import { validateAgentConfig } from '../src/agent/config.mjs';
 import {
   AgentRunner,
   buildCodexArgs,
+  codexChildEnvironment,
   extractAgentMessage,
   resolveWorkspace,
   sanitizedChildEnvironment,
@@ -115,6 +116,19 @@ test('Codex argv is locked down and an option-looking prompt is sent only over s
   assert.ok(events.some((event) => event.type === 'stderr'));
 });
 
+test('Windows sandbox override is constrained and passed as an explicit Codex config value', () => {
+  const args = buildCodexArgs('write safely', 'workspace-write', {
+    windowsSandbox: 'unelevated',
+  });
+  const configIndex = args.indexOf('windows.sandbox="unelevated"');
+  assert.ok(configIndex > args.indexOf('--ignore-user-config'));
+  assert.equal(args[configIndex - 1], '-c');
+  assert.throws(
+    () => buildCodexArgs('write unsafely', 'workspace-write', { windowsSandbox: 'disabled' }),
+    (error) => error.code === 'invalid_config',
+  );
+});
+
 test('workspace ids are exact allowlist lookups and changed realpaths are rejected', async () => {
   const config = {
     workspaces: [{ id: 'project/api', path: 'C:\\projects\\api', realPath: 'C:\\projects\\api', mode: 'workspace-write' }],
@@ -172,6 +186,22 @@ test('mesh secrets are removed case-insensitively from the Codex child environme
   );
 });
 
+test('Codex-only proxy is injected after environment filtering', () => {
+  assert.deepEqual(
+    codexChildEnvironment(
+      { PATH: '/bin', CODEX_MESH_TOKEN: 'never', HTTPS_PROXY: 'http://untrusted:1234' },
+      [],
+      'http://127.0.0.1:7897',
+    ),
+    {
+      PATH: '/bin',
+      HTTP_PROXY: 'http://127.0.0.1:7897',
+      HTTPS_PROXY: 'http://127.0.0.1:7897',
+      ALL_PROXY: 'http://127.0.0.1:7897',
+    },
+  );
+});
+
 test('agent config validates passEnv and permanently denies CODEX_MESH variables', () => {
   const base = {
     version: 1,
@@ -181,11 +211,20 @@ test('agent config validates passEnv and permanently denies CODEX_MESH variables
     workspaces: [{ id: 'project', path: '/project', realPath: '/project', mode: 'read-only' }],
   };
   assert.deepEqual(validateAgentConfig({ ...base }).passEnv, []);
+  const configured = validateAgentConfig({
+    ...base,
+    windowsSandbox: 'unelevated',
+    codexProxy: 'http://127.0.0.1:7897/',
+  });
+  assert.equal(configured.windowsSandbox, 'unelevated');
+  assert.equal(configured.codexProxy, 'http://127.0.0.1:7897');
   assert.deepEqual(validateAgentConfig({ ...base, passEnv: ['OPENAI_API_KEY'] }).passEnv, ['OPENAI_API_KEY']);
   assert.throws(
     () => validateAgentConfig({ ...base, passEnv: ['CODEX_MESH_TOKEN'] }),
     /can never include CODEX_MESH/,
   );
+  assert.throws(() => validateAgentConfig({ ...base, windowsSandbox: 'none' }), /windowsSandbox/);
+  assert.throws(() => validateAgentConfig({ ...base, codexProxy: 'file:///tmp/socket' }), /codexProxy/);
 });
 
 test('final agent_message is parsed from supported Codex JSONL shapes', () => {

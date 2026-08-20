@@ -9,6 +9,8 @@
   "capabilities": ["codex-exec"],
   "maxConcurrent": 1,
   "codexCommand": "codex",
+  "windowsSandbox": "unelevated",
+  "codexProxy": "http://127.0.0.1:7897",
   "passEnv": [],
   "pollIntervalMs": 2000,
   "heartbeatIntervalMs": 30000,

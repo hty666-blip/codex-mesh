@@ -191,6 +191,18 @@ $HubUrl = "http://10.147.20.10:7337"  # 换成 Windows 10 的组网私有 IPv4
 
 首次测试先保持前台运行。Windows Agent 配置默认位于 `%APPDATA%\codex-mesh\agent.json`，里面有该节点的独立 bearer token，不能复制给其他节点。
 
+如果 Windows 默认沙箱不能写入已登记的可写工作区，可使用 OpenAI 官方提供的较弱后备沙箱。如果该 worker 的 Codex CLI 还需要本机 Clash 等 HTTP 代理，也可以只给 Codex 子进程配置代理，不影响 Agent 通过 ZeroTier/Tailscale 直连 Hub：
+
+```powershell
+& $Agent configure `
+  --windows-sandbox unelevated `
+  --codex-proxy http://127.0.0.1:7897
+
+& $Agent run
+```
+
+优先使用 `elevated`；只有默认沙箱不可用时才使用 `unelevated`。把 `7897` 换成代理软件实际监听端口。修改配置不需要重新配对；可用 `--clear-codex-proxy` 或 `--clear-windows-sandbox` 撤销覆盖。
+
 安装脚本只把无依赖的 Agent/CLI 文件复制到 `%LOCALAPPDATA%\CodexMesh`，不会提权，不会修改防火墙，也不会自动创建服务或计划任务。测试成功后，如需登录后自动启动，可自行审阅并填写 `scripts/windows/codex-mesh-agent-task.xml.template`，再以当前低权限用户导入任务计划程序。
 
 如果这台机器永远只允许分析，不允许修改，把最后一个选项改为：
@@ -372,6 +384,14 @@ curl http://WINDOWS10_TAILSCALE_IP:7337/v1/health
 ### 提示配置已存在
 
 正常重启只需执行 `run`，不要再次 `enroll`。除非你明确要替换节点身份，否则不要随便加 `--force`；替换后旧节点还需要在主控撤销。
+
+### Windows Codex 一直提示网络重连或 TLS 失败
+
+先检查 `chatgpt.com:443` 是否可达。如果 Codex CLI 需要 Clash 等本地 HTTP 代理，执行 `mesh-agent configure --codex-proxy http://127.0.0.1:端口`。该代理只交给 Codex 子进程，不影响 Agent 直连私网 Hub。
+
+### Windows 可写工作区仍表现为只读
+
+先确认工作区登记为 `workspace-write`。如果 OpenAI 官方推荐的 `elevated` Windows 沙箱在这台机器不可用，再执行 `mesh-agent configure --windows-sandbox unelevated` 使用较弱的后备沙箱。
 
 ### Codex 能读取不该读取的文件
 

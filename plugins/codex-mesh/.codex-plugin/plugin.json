@@ -1,6 +1,6 @@
 {
   "name": "codex-mesh",
-  "version": "0.1.1",
+  "version": "0.1.2+codex.20260820061650",
   "description": "Delegate Codex tasks to a private, self-hosted fleet of computers.",
   "author": {
     "name": "hty666-blip and contributors",
